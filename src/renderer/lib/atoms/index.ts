@@ -310,6 +310,39 @@ export const showOfflineModeFeaturesAtom = atomWithStorage<boolean>(
   { getOnInit: true },
 )
 
+// ============================================
+// COPILOT PROVIDER ATOMS
+// ============================================
+
+// AI Provider selection: "claude" (Claude SDK) or "copilot" (GitHub Copilot SDK)
+export type AIProvider = "claude" | "copilot"
+export const aiProviderAtom = atomWithStorage<AIProvider>(
+  "agents:ai-provider",
+  "claude", // Default to Claude for backwards compatibility
+  undefined,
+  { getOnInit: true },
+)
+
+// Copilot authentication status
+export const copilotAuthenticatedAtom = atom<boolean>(false)
+
+// Selected Copilot model
+export const selectedCopilotModelAtom = atomWithStorage<string>(
+  "agents:copilot-model",
+  "claude-sonnet-4", // Default model
+  undefined,
+  { getOnInit: true },
+)
+
+// Available Copilot models (populated from SDK)
+export const copilotModelsAtom = atom<Array<{ id: string; name: string; provider: string }>>([
+  { id: "gpt-4.1", name: "GPT-4.1", provider: "openai" },
+  { id: "gpt-5", name: "GPT-5", provider: "openai" },
+  { id: "claude-sonnet-4", name: "Claude Sonnet 4", provider: "anthropic" },
+  { id: "claude-sonnet-4.5", name: "Claude Sonnet 4.5", provider: "anthropic" },
+  { id: "claude-opus-4", name: "Claude Opus 4", provider: "anthropic" },
+])
+
 // Network status (updated from main process)
 export const networkOnlineAtom = atom<boolean>(true)
 

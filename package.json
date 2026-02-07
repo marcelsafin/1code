@@ -33,7 +33,7 @@
   },
   "dependencies": {
     "@ai-sdk/react": "^3.0.14",
-    "@anthropic-ai/claude-agent-sdk": "0.2.32",
+    "@github/copilot-sdk": "^0.1.22",
     "@git-diff-view/react": "^0.0.35",
     "@git-diff-view/shiki": "^0.0.36",
     "@modelcontextprotocol/sdk": "^1.25.3",
@@ -173,7 +173,7 @@
     "asarUnpack": [
       "node_modules/better-sqlite3/**/*",
       "node_modules/node-pty/**/*",
-      "node_modules/@anthropic-ai/claude-agent-sdk/**/*"
+      "node_modules/@github/copilot-sdk/**/*"
     ],
     "mac": {
       "category": "public.app-category.developer-tools",
