@@ -757,8 +757,9 @@ export const isFullscreenAtom = atom<boolean | null>(null)
 // "claude-subscription" = use Claude Pro/Max via OAuth
 // "api-key" = use Anthropic API key directly
 // "custom-model" = use custom base URL and model (e.g. for proxies or alternative providers)
+// "github-copilot" = use GitHub Copilot SDK (requires Copilot Pro+ subscription)
 // null = not yet selected (show billing method selection screen)
-export type BillingMethod = "claude-subscription" | "api-key" | "custom-model" | null
+export type BillingMethod = "claude-subscription" | "api-key" | "custom-model" | "github-copilot" | null
 
 export const billingMethodAtom = atomWithStorage<BillingMethod>(
   "onboarding:billing-method",

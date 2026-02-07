@@ -4,7 +4,7 @@ import { useSetAtom } from "jotai"
 import { useState } from "react"
 import { Check } from "lucide-react"
 
-import { ClaudeCodeIcon, KeyFilledIcon, SettingsFilledIcon } from "../../components/ui/icons"
+import { ClaudeCodeIcon, KeyFilledIcon, SettingsFilledIcon, GitHubIcon } from "../../components/ui/icons"
 import { billingMethodAtom, type BillingMethod } from "../../lib/atoms"
 import { cn } from "../../lib/utils"
 
@@ -14,6 +14,7 @@ type BillingOption = {
   subtitle: string
   recommended?: boolean
   icon: React.ReactNode
+  iconBgColor?: string
 }
 
 const billingOptions: BillingOption[] = [
@@ -23,6 +24,14 @@ const billingOptions: BillingOption[] = [
     subtitle: "Use your Claude subscription for unlimited access.",
     recommended: true,
     icon: <ClaudeCodeIcon className="w-5 h-5" />,
+    iconBgColor: "bg-[#D97757]",
+  },
+  {
+    id: "github-copilot",
+    title: "GitHub Copilot",
+    subtitle: "Use your Copilot Pro+ subscription for multi-model access.",
+    icon: <GitHubIcon className="w-5 h-5" />,
+    iconBgColor: "bg-[#24292e]",
   },
   {
     id: "api-key",
@@ -91,9 +100,9 @@ export function BillingMethodPage() {
               <div className="flex items-start gap-3">
                 <div
                   className={cn(
-                    "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
-                    option.id === "claude-subscription"
-                      ? "bg-[#D97757] text-white"
+                    "w-10 h-10 rounded-lg flex items-center justify-center shrink-0 text-white",
+                    option.iconBgColor
+                      ? option.iconBgColor
                       : selectedOption === option.id
                         ? "bg-foreground text-background"
                         : "bg-muted text-muted-foreground"

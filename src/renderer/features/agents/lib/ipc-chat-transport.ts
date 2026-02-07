@@ -4,12 +4,14 @@ import { toast } from "sonner"
 import {
   agentsLoginModalOpenAtom,
   autoOfflineModeAtom,
+  billingMethodAtom,
   type CustomClaudeConfig,
   customClaudeConfigAtom,
   enableTasksAtom,
   extendedThinkingEnabledAtom,
   historyEnabledAtom,
   normalizeCustomClaudeConfig,
+  selectedCopilotModelAtom,
   selectedOllamaModelAtom,
   sessionInfoAtom,
   showOfflineModeFeaturesAtom,
@@ -190,15 +192,94 @@ export class IPCChatTransport implements ChatTransport<UIMessage> {
         .allSubChats.find((subChat) => subChat.id === this.config.subChatId)
         ?.mode || this.config.mode
 
+    // Check which provider to use
+    const billingMethod = appStore.get(billingMethodAtom)
+    const useCopilot = billingMethod === "github-copilot"
+    const copilotModel = appStore.get(selectedCopilotModelAtom)
+
     // Stream debug logging
     const subId = this.config.subChatId.slice(-8)
     let chunkCount = 0
     let lastChunkType = ""
-    console.log(`[SD] R:START sub=${subId} cwd=${this.config.cwd} projectPath=${this.config.projectPath || "(not set)"} customConfig=${customConfig ? "set" : "not set"}`)
+    console.log(`[SD] R:START sub=${subId} cwd=${this.config.cwd} projectPath=${this.config.projectPath || "(not set)"} provider=${useCopilot ? "copilot" : "claude"} customConfig=${customConfig ? "set" : "not set"}`)
+
+    // Common onData handler for chunks
+    const handleChunk = (chunk: UIMessageChunk) => {
+      chunkCount++
+      lastChunkType = chunk.type
+
+      // Handle AskUserQuestion - show question UI
+      if (chunk.type === "ask-user-question") {
+        const currentMap = appStore.get(pendingUserQuestionsAtom)
+        const newMap = new Map(currentMap)
+        newMap.set(this.config.subChatId, {
+          subChatId: this.config.subChatId,
+          parentChatId: this.config.chatId,
+          toolUseId: chunk.toolUseId,
+          questions: chunk.questions,
+        })
+        appStore.set(pendingUserQuestionsAtom, newMap)
+
+        // Clear any expired question (new question replaces it)
+        const currentExpired = appStore.get(expiredUserQuestionsAtom)
+        if (currentExpired.has(this.config.subChatId)) {
+          const newExpiredMap = new Map(currentExpired)
+          newExpiredMap.delete(this.config.subChatId)
+          appStore.set(expiredUserQuestionsAtom, newExpiredMap)
+        }
+      }
+
+      // Handle AskUserQuestion timeout - move to expired (keep UI visible)
+      if (chunk.type === "ask-user-question-timeout") {
+        const currentMap = appStore.get(pendingUserQuestionsAtom)
+        const pending = currentMap.get(this.config.subChatId)
+        if (pending && pending.toolUseId === chunk.toolUseId) {
+          // Remove from pending
+          const newPendingMap = new Map(currentMap)
+          newPendingMap.delete(this.config.subChatId)
+          appStore.set(pendingUserQuestionsAtom, newPendingMap)
+
+          // Move to expired (so UI keeps showing the question)
+          const currentExpired = appStore.get(expiredUserQuestionsAtom)
+          const newExpiredMap = new Map(currentExpired)
+          newExpiredMap.set(this.config.subChatId, pending)
+          appStore.set(expiredUserQuestionsAtom, newExpiredMap)
+        }
+      }
+
+      return chunk
+    }
 
     return new ReadableStream({
       start: (controller) => {
-        const sub = trpcClient.claude.chat.subscribe(
+        // Route to Copilot or Claude based on billing method
+        const sub = useCopilot
+          ? trpcClient.copilot.chat.subscribe(
+              {
+                subChatId: this.config.subChatId,
+                chatId: this.config.chatId,
+                prompt,
+                cwd: this.config.cwd,
+                projectPath: this.config.projectPath,
+                model: copilotModel,
+                ...(images.length > 0 && { images }),
+              },
+              {
+                onData: (chunk: UIMessageChunk) => {
+                  const processed = handleChunk(chunk)
+                  controller.enqueue(processed)
+                },
+                onError: (error) => {
+                  console.error(`[SD] R:ERROR sub=${subId} provider=copilot`, error)
+                  controller.error(error)
+                },
+                onComplete: () => {
+                  console.log(`[SD] R:END sub=${subId} provider=copilot n=${chunkCount} last=${lastChunkType}`)
+                  controller.close()
+                },
+              }
+            )
+          : trpcClient.claude.chat.subscribe(
           {
             subChatId: this.config.subChatId,
             chatId: this.config.chatId,
